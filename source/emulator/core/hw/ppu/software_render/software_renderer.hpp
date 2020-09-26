@@ -23,8 +23,9 @@ public:
       InterruptController* irq_controller,
       DMA* dma,
       std::shared_ptr<Config> config);
+    virtual ~SoftwareRenderer() override = default;
 
-  void Reset() override;
+  virtual void Reset() override;
 
 private:
   friend struct DisplayStatus;

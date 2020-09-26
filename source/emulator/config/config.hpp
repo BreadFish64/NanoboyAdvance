@@ -14,6 +14,7 @@
 #include "../device/audio_device.hpp"
 #include "../device/input_device.hpp"
 #include "../device/video_device.hpp"
+#include "../core/hw/ppu/vulkan_render/frontend.hpp"
 
 namespace nba {
 
@@ -60,6 +61,7 @@ struct Config {
   std::shared_ptr<AudioDevice> audio_dev = std::make_shared<NullAudioDevice>();
   std::shared_ptr<InputDevice> input_dev = std::make_shared<NullInputDevice>();
   std::shared_ptr<VideoDevice> video_dev = std::make_shared<NullVideoDevice>();
+  std::shared_ptr<nba::core::VulkanFrontend> vulkan_frontend = nullptr;
 };
 
 } // namespace nba

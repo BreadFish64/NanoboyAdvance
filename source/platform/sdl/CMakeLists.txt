@@ -1,12 +1,13 @@
 set(SOURCES
     main.cpp
     device/vk_video_device.cpp
+    device/vk_renderer_frontend.cpp
 )
 
 set(HEADERS
     device/audio_device.hpp
     device/vk_video_device.hpp
-    vk_util.hpp
+    device/vk_renderer_frontend.hpp
 )
 
 include(FindSDL2)

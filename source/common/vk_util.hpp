@@ -17,10 +17,10 @@ inline vk::DispatchLoaderDynamic& GetDefaultDispatcher();
 }
 
 #define NOMINMAX
-#define VK_USE_PLATFORM_WIN32_KHR
 #define VULKAN_HPP_DEFAULT_DISPATCHER_TYPE ::vk::DispatchLoaderDynamic
 #define VULKAN_HPP_DEFAULT_DISPATCHER ::Vulkan::GetDefaultDispatcher()
 #include <vulkan/vulkan.hpp>
+#undef interface
 
 inline vk::DynamicLoader dl;
 

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <platform/sdl/vk_util.hpp>
+#include <common/vk_util.hpp>
 
 #include <emulator/device/video_device.hpp>
 

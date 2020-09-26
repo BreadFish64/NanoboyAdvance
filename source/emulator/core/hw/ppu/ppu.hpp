@@ -8,8 +8,9 @@ namespace nba::core {
 class PPU {
 public:
     PPU(InterruptController* irq_controller) : irq_controller{irq_controller} {};
+    virtual ~PPU() = default;
 
-    virtual void Reset() = 0;
+    virtual void Reset();
     virtual void HookPRAM(std::uint32_t address, std::uint32_t size){};
     virtual void HookVRAM(std::uint32_t address, std::uint32_t size){};
     virtual void HookOAM(std::uint32_t address, std::uint32_t size){};

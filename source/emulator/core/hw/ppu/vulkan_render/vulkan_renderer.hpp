@@ -15,14 +15,21 @@
 #include <emulator/core/hw/ppu/registers.hpp>
 #include <emulator/core/scheduler.hpp>
 
+#include "swapchain.hpp"
+
 namespace nba::core {
+
+class VulkanFrontend;
 
 class VulkanRenderer final : public nba::core::PPU {
 public:
+    static constexpr std::uint32_t native_width = 240, native_height = 160;
+
     VulkanRenderer(Scheduler* scheduler, InterruptController* irq_controller, DMA* dma,
                    std::shared_ptr<Config> config);
+    virtual ~VulkanRenderer() override;
 
-    void Reset() override;
+    virtual void Reset() override;
 
 private:
     friend struct DisplayStatus;
@@ -86,28 +93,54 @@ private:
     void InitBlendTable();
     void Blend(std::uint16_t& target1, std::uint16_t target2, BlendControl::Effect sfx);
 
+    void Draw();
+
 #include <emulator/core/hw/ppu/helper.inl>
+
+    std::shared_ptr<VulkanFrontend> frontend;
+
+    struct {
+        vk::PhysicalDevice physical_device;
+        std::uint32_t queue_family_index;
+        vk::Queue queue;
+        vk::UniqueDevice device;
+        vk::UniqueCommandPool command_pool;
+    } vk;
+    struct {
+        vk::UniqueImage image;
+        vk::UniqueDeviceMemory memory;
+        // vk::UniqueImageView view;
+        vk::ImageLayout layout{};
+        std::uint32_t* ptr{};
+        vk::UniqueFence fence;
+    } staging;
+    struct {
+        std::vector<vk::UniqueCommandBuffer> command_buffers;
+        vk::UniqueSemaphore finished_semaphore;
+    } blit;
+
+    Swapchain swapchain;
 
     Scheduler* scheduler;
     DMA* dma;
     std::shared_ptr<Config> config;
     std::function<void(int)> event_cb = [this](int cycles_late) { this->Tick(cycles_late); };
 
-    std::uint16_t buffer_bg[4][240];
+    std::uint16_t buffer_bg[4][native_width];
 
     struct ObjectPixel {
         std::uint16_t color;
         std::uint8_t priority;
         unsigned alpha : 1;
         unsigned window : 1;
-    } buffer_obj[240];
+    } buffer_obj[native_width];
 
     bool line_contains_alpha_obj;
 
-    bool buffer_win[2][240];
+    bool buffer_win[2][native_width];
     bool window_scanline_enable[2];
 
-    std::uint32_t output[240 * 160];
+    std::array<std::uint32_t, native_width * native_height> output;
 
     Phase phase;
 

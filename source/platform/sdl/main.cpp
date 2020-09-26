@@ -27,6 +27,7 @@
 
 #include "device/audio_device.hpp"
 #include "device/vk_video_device.hpp"
+#include "device/vk_renderer_frontend.hpp"
 
 #include "GL/glew.h"
 
@@ -39,7 +40,7 @@ static SDL_Window* g_window;
 static SDL_GLContext g_gl_context;
 static GLuint g_gl_texture;
 static std::uint32_t g_framebuffer[kNativeWidth * kNativeHeight];
-static auto g_frame_counter = 0;
+static std::uint64_t g_frame_counter = 0;
 
 static std::atomic_bool g_sync_to_audio = true;
 static int g_cycles_per_audio_frame = 0;
@@ -50,8 +51,9 @@ static SDL_GameController* g_game_controller = nullptr;
 static auto g_game_controller_button_x_old = false;
 static auto g_fastforward = false;
 
+std::string g_game_path;
 static auto g_config = std::make_shared<nba::Config>();
-static auto g_emulator = std::make_unique<nba::Emulator>(g_config);
+static std::unique_ptr<nba::Emulator> g_emulator;
 static auto g_emulator_lock = std::mutex{};
 
 struct KeyMap {
@@ -185,7 +187,7 @@ void parse_arguments(int argc, char** argv) {
     if (i == argc) {
         usage(argv[0]);
     }
-    load_game(argv[i]);
+    g_game_path = argv[i];
 }
 
 void load_game(std::string const& rom_path) {
@@ -308,46 +310,46 @@ void init(int argc, char** argv) {
     parse_arguments(argc, argv);
     load_keymap();
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
-    g_window = SDL_CreateWindow("NanoboyAdvance", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                kNativeWidth * g_config->video.scale,
-                                kNativeHeight * g_config->video.scale, SDL_WINDOW_OPENGL);
-    g_gl_context = SDL_GL_CreateContext(g_window);
-#ifndef __APPLE__
-    glewExperimental = GL_TRUE;
-    glewInit();
-#endif
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetSwapInterval(1);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &g_gl_texture);
-    glBindTexture(GL_TEXTURE_2D, g_gl_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    if (!g_config->video.shader.path_vs.empty() && !g_config->video.shader.path_fs.empty()) {
-        auto vert_src = load_as_string(g_config->video.shader.path_vs);
-        auto frag_src = load_as_string(g_config->video.shader.path_fs);
-        if (vert_src.has_value() && frag_src.has_value()) {
-            auto vid = glCreateShader(GL_VERTEX_SHADER);
-            auto fid = glCreateShader(GL_FRAGMENT_SHADER);
-            if (compile_shader(vid, vert_src.value().c_str()) &&
-                compile_shader(fid, frag_src.value().c_str())) {
-                auto pid = glCreateProgram();
-                glAttachShader(pid, vid);
-                glAttachShader(pid, fid);
-                glLinkProgram(pid);
-                glUseProgram(pid);
-            }
-        }
-    }
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    //g_window = SDL_CreateWindow("NanoboyAdvance", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    //                            kNativeWidth * g_config->video.scale,
+    //                            kNativeHeight * g_config->video.scale, SDL_WINDOW_OPENGL);
+//    g_gl_context = SDL_GL_CreateContext(g_window);
+//#ifndef __APPLE__
+//    glewExperimental = GL_TRUE;
+//    glewInit();
+//#endif
+//    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+//    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+//    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+//    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+//    SDL_GL_SetSwapInterval(1);
+//    glMatrixMode(GL_PROJECTION);
+//    glLoadIdentity();
+//    glMatrixMode(GL_MODELVIEW);
+//    glLoadIdentity();
+//    glEnable(GL_TEXTURE_2D);
+//    glGenTextures(1, &g_gl_texture);
+//    glBindTexture(GL_TEXTURE_2D, g_gl_texture);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//    if (!g_config->video.shader.path_vs.empty() && !g_config->video.shader.path_fs.empty()) {
+//        auto vert_src = load_as_string(g_config->video.shader.path_vs);
+//        auto frag_src = load_as_string(g_config->video.shader.path_fs);
+//        if (vert_src.has_value() && frag_src.has_value()) {
+//            auto vid = glCreateShader(GL_VERTEX_SHADER);
+//            auto fid = glCreateShader(GL_FRAGMENT_SHADER);
+//            if (compile_shader(vid, vert_src.value().c_str()) &&
+//                compile_shader(fid, frag_src.value().c_str())) {
+//                auto pid = glCreateProgram();
+//                glAttachShader(pid, vid);
+//                glAttachShader(pid, fid);
+//                glLinkProgram(pid);
+//                glUseProgram(pid);
+//            }
+//        }
+//    }
+//    glClearColor(0, 0, 0, 1);
+//    glClear(GL_COLOR_BUFFER_BIT);
     g_sync_to_audio = g_config->sync_to_audio;
     update_fullscreen();
     update_viewport();
@@ -364,8 +366,13 @@ void init(int argc, char** argv) {
     audio_device->SetPassthrough((SDL_AudioCallback)audio_passthrough);
     g_config->audio_dev = audio_device;
     g_config->input_dev = std::make_shared<CombinedInputDevice>();
-    g_config->video_dev = std::make_shared<CompositeVideoDevice>();
+    g_config->video_dev = std::make_shared<SDL2_VideoDevice>();
+    auto vulkan_frontend = std::make_shared<SDL2_VK_Frontend>(*g_config);
+    g_window = vulkan_frontend->GetWindow();
+    g_config->vulkan_frontend = vulkan_frontend;
+    g_emulator = std::make_unique<nba::Emulator>(g_config);
     g_emulator->Reset();
+    load_game(g_game_path);
     g_cycles_per_audio_frame =
         16777216ULL * audio_device->GetBlockSize() / audio_device->GetSampleRate();
 }
@@ -382,28 +389,30 @@ void loop() {
             g_emulator->Frame();
             g_emulator_lock.unlock();
         }
-        update_viewport();
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, g_gl_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kNativeWidth, kNativeHeight, 0, GL_BGRA,
-                     GL_UNSIGNED_BYTE, g_framebuffer);
-        glBegin(GL_QUADS);
-        glTexCoord2f(0, 0);
-        glVertex2f(-1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0);
-        glVertex2f(1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex2f(1.0f, -1.0f);
-        glTexCoord2f(0, 1.0f);
-        glVertex2f(-1.0f, -1.0f);
-        glEnd();
-        SDL_GL_SwapWindow(g_window);
+        //update_viewport();
+        //glClear(GL_COLOR_BUFFER_BIT);
+        //glBindTexture(GL_TEXTURE_2D, g_gl_texture);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kNativeWidth, kNativeHeight, 0, GL_BGRA,
+        //             GL_UNSIGNED_BYTE, g_framebuffer);
+        //glBegin(GL_QUADS);
+        //glTexCoord2f(0, 0);
+        //glVertex2f(-1.0f, 1.0f);
+        //glTexCoord2f(1.0f, 0);
+        //glVertex2f(1.0f, 1.0f);
+        //glTexCoord2f(1.0f, 1.0f);
+        //glVertex2f(1.0f, -1.0f);
+        //glTexCoord2f(0, 1.0f);
+        //glVertex2f(-1.0f, -1.0f);
+        //glEnd();
+        //SDL_GL_SwapWindow(g_window);
+        std::uint64_t& frame_counter =
+            g_config->vulkan_frontend ? g_config->vulkan_frontend->frame_count : g_frame_counter;
         auto ticks_end = SDL_GetTicks();
         if ((ticks_end - ticks_start) >= 1000) {
-            auto title = fmt::format("NanoboyAdvance [{0} fps | {1}%]", g_frame_counter,
-                                     int(g_frame_counter / 60.0 * 100.0));
+            auto title = fmt::format("NanoboyAdvance [{0} fps | {1}%]", frame_counter,
+                                     std::uint64_t(frame_counter / 60.0 * 100.0));
             SDL_SetWindowTitle(g_window, title.c_str());
-            g_frame_counter = 0;
+            frame_counter = 0;
             ticks_start = ticks_end;
         }
         while (SDL_PollEvent(&event)) {
@@ -421,8 +430,8 @@ void destroy() {
     if (g_game_controller != nullptr) {
         SDL_GameControllerClose(g_game_controller);
     }
-    SDL_GL_DeleteContext(g_gl_context);
-    SDL_DestroyWindow(g_window);
+    //SDL_GL_DeleteContext(g_gl_context);
+    //SDL_DestroyWindow(g_window);
     SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
 }
 
