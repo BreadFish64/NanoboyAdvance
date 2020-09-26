@@ -106,18 +106,18 @@ inline auto CPU::ReadByte(std::uint32_t address, Access access) -> std::uint8_t 
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint8_t>(ppu.pram, address & 0x3FF);
+    return Read<std::uint8_t>(ppu->pram, address & 0x3FF);
   }
   case REGION_VRAM: {
     PrefetchStepRAM(cycles);
     address &= 0x1FFFF;
     if (address >= 0x18000)
       address &= ~0x8000;
-    return Read<std::uint8_t>(ppu.vram, address);
+    return Read<std::uint8_t>(ppu->vram, address);
   }
   case REGION_OAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint8_t>(ppu.oam, address & 0x3FF);
+    return Read<std::uint8_t>(ppu->oam, address & 0x3FF);
   }
   case REGION_ROM_W0_L:
   case REGION_ROM_W0_H:
@@ -183,18 +183,18 @@ inline auto CPU::ReadHalf(std::uint32_t address, Access access) -> std::uint16_t
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint16_t>(ppu.pram, address & 0x3FF);
+    return Read<std::uint16_t>(ppu->pram, address & 0x3FF);
   }
   case REGION_VRAM: {
     PrefetchStepRAM(cycles);
     address &= 0x1FFFF;
     if (address >= 0x18000)
       address &= ~0x8000;
-    return Read<std::uint16_t>(ppu.vram, address);
+    return Read<std::uint16_t>(ppu->vram, address);
   }
   case REGION_OAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint16_t>(ppu.oam, address & 0x3FF);
+    return Read<std::uint16_t>(ppu->oam, address & 0x3FF);
   }
   /* 0x0DXXXXXX may be used to read/write from EEPROM */
   case REGION_ROM_W2_H: {
@@ -274,18 +274,18 @@ inline auto CPU::ReadWord(std::uint32_t address, Access access) -> std::uint32_t
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint32_t>(ppu.pram, address & 0x3FF);
+    return Read<std::uint32_t>(ppu->pram, address & 0x3FF);
   }
   case REGION_VRAM: {
     PrefetchStepRAM(cycles);
     address &= 0x1FFFF;
     if (address >= 0x18000)
       address &= ~0x8000;
-    return Read<std::uint32_t>(ppu.vram, address);
+    return Read<std::uint32_t>(ppu->vram, address);
   }
   case REGION_OAM: {
     PrefetchStepRAM(cycles);
-    return Read<std::uint32_t>(ppu.oam, address & 0x3FF);
+    return Read<std::uint32_t>(ppu->oam, address & 0x3FF);
   }
   case REGION_ROM_W0_L:
   case REGION_ROM_W0_H:
@@ -346,19 +346,23 @@ inline void CPU::WriteByte(std::uint32_t address, std::uint8_t value, Access acc
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    Write<std::uint16_t>(ppu.pram, address & 0x3FE, value * 0x0101);
+    address &= 0x3FE;
+    Write<std::uint16_t>(ppu->pram, address, value * 0x0101);
+    ppu->HookPRAM(address, sizeof(std::uint16_t));
     break;
   }
   case REGION_VRAM: {
     // TODO: move logic to decide the writeable area to the PPU class.
-    auto limit = ppu.mmio.dispcnt.mode >= 3 ? 0x14000 : 0x10000;
+    auto limit = ppu->mmio.dispcnt.mode >= 3 ? 0x14000 : 0x10000;
     PrefetchStepRAM(cycles);
     address &= 0x1FFFF;
     if (address >= 0x18000) {
       address &= ~0x8000;
     }
     if (address < limit) {
-      Write<std::uint16_t>(ppu.vram, address & ~1, value * 0x0101);
+      address &= ~1;
+      Write<std::uint16_t>(ppu->vram, address, value * 0x0101);
+      ppu->HookVRAM(address, sizeof(std::uint16_t));
     }
     break;
   }
@@ -404,7 +408,9 @@ inline void CPU::WriteHalf(std::uint32_t address, std::uint16_t value, Access ac
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    Write<std::uint16_t>(ppu.pram, address & 0x3FF, value);
+    address &= 0x3FF;
+    Write<std::uint16_t>(ppu->pram, address, value);
+    ppu->HookPRAM(address, sizeof(std::uint16_t));
     break;
   }
   case REGION_VRAM: {
@@ -413,12 +419,15 @@ inline void CPU::WriteHalf(std::uint32_t address, std::uint16_t value, Access ac
     if (address >= 0x18000) {
       address &= ~0x8000;
     }
-    Write<std::uint16_t>(ppu.vram, address, value);
+    Write<std::uint16_t>(ppu->vram, address, value);
+    ppu->HookVRAM(address, sizeof(std::uint16_t));
     break;
   }
   case REGION_OAM: {
     PrefetchStepRAM(cycles);
-    Write<std::uint16_t>(ppu.oam, address & 0x3FF, value);
+    address &= 0x3FF;
+    Write<std::uint16_t>(ppu->oam, address, value);
+    ppu->HookOAM(address, sizeof(std::uint16_t));
     break;
   }
   case REGION_ROM_W0_L: case REGION_ROM_W0_H:
@@ -493,7 +502,9 @@ inline void CPU::WriteWord(std::uint32_t address, std::uint32_t value, Access ac
   }
   case REGION_PRAM: {
     PrefetchStepRAM(cycles);
-    Write<std::uint32_t>(ppu.pram, address & 0x3FF, value);
+    address &= 0x3FF;
+    Write<std::uint32_t>(ppu->pram, address, value);
+    ppu->HookPRAM(address, sizeof(std::uint32_t));
     break;
   }
   case REGION_VRAM: {
@@ -502,12 +513,15 @@ inline void CPU::WriteWord(std::uint32_t address, std::uint32_t value, Access ac
     if (address >= 0x18000) {
       address &= ~0x8000;
     }
-    Write<std::uint32_t>(ppu.vram, address, value);
+    Write<std::uint32_t>(ppu->vram, address, value);
+    ppu->HookVRAM(address, sizeof(std::uint32_t));
     break;
   }
   case REGION_OAM: {
     PrefetchStepRAM(cycles);
-    Write<std::uint32_t>(ppu.oam, address & 0x3FF, value);
+    address &= 0x3FF;
+    Write<std::uint32_t>(ppu->oam, address, value);
+    ppu->HookOAM(address, sizeof(std::uint32_t));
     break;
   }
   case REGION_ROM_W0_L: case REGION_ROM_W0_H:

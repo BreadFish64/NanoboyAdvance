@@ -5,11 +5,11 @@
  * Refer to the included LICENSE file.
  */
 
-#include "../ppu.hpp"
+#include "software_renderer.hpp"
 
 namespace nba::core {
 
-const int PPU::s_obj_size[4][4][2] = {
+const int SoftwareRenderer::s_obj_size[4][4][2] = {
   /* SQUARE */
   {
     { 8 , 8  },
@@ -40,7 +40,7 @@ const int PPU::s_obj_size[4][4][2] = {
   }
 };
 
-void PPU::RenderLayerOAM(bool bitmap_mode) {  
+void SoftwareRenderer::RenderLayerOAM(bool bitmap_mode) {  
   /* 2d-affine transform matrix (pa, pb, pc, pd). */
   std::int16_t transform[4];
 

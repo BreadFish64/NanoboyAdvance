@@ -5,11 +5,11 @@
  * Refer to the included LICENSE file.
  */
 
-#include "../ppu.hpp"
+#include "software_renderer.hpp"
 
 namespace nba::core {
 
-void PPU::RenderLayerText(int id) {
+void SoftwareRenderer::RenderLayerText(int id) {
   auto const& bgcnt  = mmio.bgcnt[id];
   auto const& mosaic = mmio.mosaic.bg;
   

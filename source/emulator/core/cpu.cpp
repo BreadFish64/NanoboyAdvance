@@ -6,6 +6,8 @@
  */
 
 #include "cpu.hpp"
+#include "hw/ppu/software_render/software_renderer.hpp"
+#include "hw/ppu/vulkan_render/vulkan_renderer.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -25,7 +27,7 @@ CPU::CPU(std::shared_ptr<Config> config)
   , config(config)
   , dma(this, &irq_controller, &scheduler)
   , apu(&scheduler, &dma, config)
-  , ppu(&scheduler, &irq_controller, &dma, config)
+  , ppu(std::make_unique<VulkanRenderer>(&scheduler, &irq_controller, &dma, config))
   , timer(&scheduler, &irq_controller, &apu)
   , serial_bus(&irq_controller)
 {
@@ -57,7 +59,7 @@ void CPU::Reset() {
   dma.Reset();
   timer.Reset();
   apu.Reset();
-  ppu.Reset();
+  ppu->Reset();
   serial_bus.Reset();
   ARM7TDMI::Reset();
 

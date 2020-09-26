@@ -11,7 +11,7 @@ SDL2_VK_VideoDevice::SDL2_VK_VideoDevice(const nba::Config& config) : config{con
                                native_height * config.video.scale, SDL_WINDOW_VULKAN),
               SDL_DestroyWindow};
     Vulkan::InitDispatcher(
-        static_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
+        reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
     {
         unsigned int sdl_instance_extension_count{0};
         SDL_Vulkan_GetInstanceExtensions(window.get(), &sdl_instance_extension_count, nullptr);

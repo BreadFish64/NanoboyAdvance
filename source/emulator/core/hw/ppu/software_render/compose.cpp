@@ -7,13 +7,13 @@
 
 #include <algorithm>
 
-#include "ppu.hpp"
+#include "software_renderer.hpp"
 
 namespace nba::core {
 
 using BlendMode = BlendControl::Effect;
 
-auto PPU::ConvertColor(std::uint16_t color) -> std::uint32_t {
+auto SoftwareRenderer::ConvertColor(std::uint16_t color) -> std::uint32_t {
   int r = (color >>  0) & 0x1F;
   int g = (color >>  5) & 0x1F;
   int b = (color >> 10) & 0x1F;
@@ -24,7 +24,7 @@ auto PPU::ConvertColor(std::uint16_t color) -> std::uint32_t {
          0xFF000000;
 }
 
-void PPU::InitBlendTable() {
+void SoftwareRenderer::InitBlendTable() {
   for (int color0 = 0; color0 <= 31; color0++) {
     for (int color1 = 0; color1 <= 31; color1++) {
       for (int factor0 = 0; factor0 <= 16; factor0++) {
@@ -38,7 +38,7 @@ void PPU::InitBlendTable() {
   }
 }
 
-void PPU::RenderScanline() {
+void SoftwareRenderer::RenderScanline() {
   std::uint16_t  vcount = mmio.vcount;
   std::uint32_t* line = &output[vcount * 240];
 
@@ -136,7 +136,7 @@ void PPU::RenderScanline() {
   }
 }
 
-void PPU::ComposeScanline(int bg_min, int bg_max) {
+void SoftwareRenderer::ComposeScanline(int bg_min, int bg_max) {
   std::uint32_t* line = &output[mmio.vcount * 240];
   std::uint16_t backdrop = ReadPalette(0, 0);
 
@@ -249,7 +249,7 @@ void PPU::ComposeScanline(int bg_min, int bg_max) {
   }
 }
 
-void PPU::Blend(std::uint16_t& target1,
+void SoftwareRenderer::Blend(std::uint16_t& target1,
                 std::uint16_t target2,
                 BlendMode sfx) {
   int r1 = (target1 >>  0) & 0x1F;

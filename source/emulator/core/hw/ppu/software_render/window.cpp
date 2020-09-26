@@ -5,11 +5,11 @@
  * Refer to the included LICENSE file.
  */
 
-#include "../ppu.hpp"
+#include "software_renderer.hpp"
 
 namespace nba::core {
 
-void PPU::RenderWindow(int id) {
+void SoftwareRenderer::RenderWindow(int id) {
   int line = mmio.vcount;
   auto& winv = mmio.winv[id];
 

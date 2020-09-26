@@ -5,11 +5,11 @@
  * Refer to the included LICENSE file.
  */
 
-#include "../ppu.hpp"
+#include "vulkan_renderer.hpp"
 
 namespace nba::core {
 
-void PPU::RenderLayerAffine(int id) {
+void VulkanRenderer::RenderLayerAffine(int id) {
   auto const& bg = mmio.bgcnt[2 + id];
   
   std::uint16_t* buffer = buffer_bg[2 + id];

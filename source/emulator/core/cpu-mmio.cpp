@@ -13,7 +13,7 @@ namespace nba::core {
 
 auto CPU::ReadMMIO(std::uint32_t address) -> std::uint8_t {
   auto& apu_io = apu.mmio;
-  auto& ppu_io = ppu.mmio;
+  auto& ppu_io = ppu->mmio;
 
   switch (address) {
     /* PPU */
@@ -223,7 +223,7 @@ auto CPU::ReadMMIO(std::uint32_t address) -> std::uint8_t {
 
 void CPU::WriteMMIO(std::uint32_t address, std::uint8_t value) {
   auto& apu_io = apu.mmio;
-  auto& ppu_io = ppu.mmio;
+  auto& ppu_io = ppu->mmio;
 
   switch (address) {
     /* PPU */
@@ -567,6 +567,8 @@ void CPU::WriteMMIO(std::uint32_t address, std::uint8_t value) {
 
     case POSTFLG: mmio.postflg = value & 1; break;
   }
+  if (address < 0x4000060)
+    ppu->HookMMIO(address & 0x7F);
 }
 
 } // namespace nba::core

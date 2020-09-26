@@ -5,11 +5,11 @@
  * Refer to the included LICENSE file.
  */
 
-#include "../ppu.hpp"
+#include "software_renderer.hpp"
 
 namespace nba::core {
 
-void PPU::RenderLayerBitmap1() {
+void SoftwareRenderer::RenderLayerBitmap1() {
   AffineRenderLoop(0, 240, 160, [&](int line_x, int x, int y) {
     int index = y * 480 + x * 2;
     
@@ -17,7 +17,7 @@ void PPU::RenderLayerBitmap1() {
   });
 }
 
-void PPU::RenderLayerBitmap2() {  
+void SoftwareRenderer::RenderLayerBitmap2() {  
   auto frame = mmio.dispcnt.frame * 0xA000;
   
   AffineRenderLoop(0, 240, 160, [&](int line_x, int x, int y) {
@@ -27,7 +27,7 @@ void PPU::RenderLayerBitmap2() {
   });
 }
 
-void PPU::RenderLayerBitmap3() {
+void SoftwareRenderer::RenderLayerBitmap3() {
   auto frame = mmio.dispcnt.frame * 0xA000;
   
   AffineRenderLoop(0, 160, 128, [&](int line_x, int x, int y) {

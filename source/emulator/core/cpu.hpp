@@ -108,7 +108,7 @@ public:
   InterruptController irq_controller;
   DMA dma;
   APU apu;
-  PPU ppu;
+  std::unique_ptr<PPU> ppu;
   Timer timer;
   SerialBus serial_bus;
 
