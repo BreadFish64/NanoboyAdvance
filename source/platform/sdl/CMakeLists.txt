@@ -1,19 +1,23 @@
 set(SOURCES
     main.cpp
+    device/vk_video_device.cpp
 )
 
 set(HEADERS
     device/audio_device.hpp
+    device/vk_video_device.hpp
+    vk_util.hpp
 )
 
 include(FindSDL2)
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(Vulkan REQUIRED)
 
 add_executable(NanoboyAdvance ${SOURCES} ${HEADERS})
 target_include_directories(NanoboyAdvance PRIVATE ${SDL2_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS})
-target_link_libraries(NanoboyAdvance nba ${SDL2_LIBRARY} ${OPENGL_gl_LIBRARY})
+target_link_libraries(NanoboyAdvance nba Vulkan::Vulkan ${SDL2_LIBRARY} ${OPENGL_gl_LIBRARY})
 if (APPLE)
   target_link_libraries(NanoboyAdvance GLEW::glew)
 else()
